@@ -1,6 +1,8 @@
 import boto3
 import click
 from botocore.exceptions import ClientError
+from pathlib import Path
+import mimetypes
 
 #To tell Boto3 to use the profile pythonAutomation, we create a session.
 session = boto3.Session(profile_name='pythonAutomation')
@@ -32,6 +34,7 @@ def list_bucket_objects(bucket):
 @click.argument('bucket')
 def setup_bucket(bucket):
     "Create and configure S3 bucket"
+
     s3_bucket = None
 
     try:
@@ -41,7 +44,7 @@ def setup_bucket(bucket):
         )
     except ClientError as e:
         if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
-            s3_bucket = s3.Bucket(bucket)
+            s3_bucket = s3.Bucket(bucket) #so get the bucket that I had created long back
         else:
             raise e
 
@@ -60,7 +63,7 @@ def setup_bucket(bucket):
           }
         ]
      }
-    """ % s3_bucket.name
+    """ % s3_bucket.name #the %s in Resource above will be replaced by s3_bucket.name
     policy = policy.strip() #to remove any blank space before and after the string
 
     pol = s3_bucket.Policy() #we get the policy object
@@ -79,9 +82,31 @@ def setup_bucket(bucket):
 
     return
 
+def upload_file(s3_bucket,path,key):
+    content_type = mimetypes.guess_type(key)[0] or 'text/plain' # default text if mimetypes returns None (unable to guess)
+    s3_bucket.upload_file(
+    path,
+    key,
+    ExtraArgs={
+            'ContentType': 'text/html'
+    })
+
+@cli.command('sync')
+@click.argument('pathname', type=click.Path(exists=True))
+@click.argument('bucket')
+def sync(pathname, bucket):
+    "Sync contents of PATHNAME to BUCKET"
+    s3_bucket = s3.Bucket(bucket)
+
+    root = Path(pathname).expanduser().resolve() # we will get the absolute path of the directory
+
+    def handle_directory(target):
+        for p in target.iterdir():
+            if p.is_dir(): handle_directory(p)
+            if p.is_file(): upload_file(s3_bucket, str(p), str(p.relative_to(root)))
 
 
-
+    handle_directory(root)
 
 if __name__ == '__main__':
     cli()
