@@ -2,12 +2,12 @@
 """ pathlib - for our code to be able to work on both windows and MAC
     mimetypes - to guess the file extension(type)"""
 
+"""Classes for S3 Buckets."""
+
 from pathlib import Path
 import mimetypes
 
 from botocore.exceptions import ClientError
-
-"""Classes for S3 Buckets."""
 
 
 class BucketManager:
@@ -100,12 +100,13 @@ class BucketManager:
         """Sync contents of path to bucket."""
         bucket = self.s3.Bucket(bucket_name)
         root = Path(pathname).expanduser().resolve()
-        # we will get the absolute path of the directory
+        # resolve will give the absolute path of the directory
 
         def handle_directory(target):
-            for p in target.iterdir():
+            for p in target.iterdir():  # iterate over the directory
+                # If p is a directory, iterate over, if it's a file, upload it
                 if p.is_dir():
-                    handle_directory(p)
+                    handle_directory(p)  # recursion
                 if p.is_file():
                     self.upload_file(bucket, str(p), str(p.relative_to(root)))
 

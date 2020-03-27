@@ -33,7 +33,7 @@ def cli():
 
 
 @cli.command('list-buckets')
-def list_buckets():  # our function
+def list_buckets():
     """List all s3 buckets"""  # doc string
     for bucket in bucket_manager.all_buckets():  # to get a list of all buckets
         print(bucket)
