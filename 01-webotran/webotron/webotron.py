@@ -17,19 +17,26 @@ import click
 # click is a cli creation kit, it's a Python package for cli
 
 from bucket import BucketManager
-# To tell Boto3 to use the profile pythonAutomation, we create a session.
-session = boto3.Session(profile_name='pythonAutomation')
-bucket_manager = BucketManager(session)
 
+session = None
+bucket_manager = None
 
 @click.group()  # click.command () is a decorator.
 # A decorator wraps the function.
 # It will generate error messages, help messages for the function
 # click.group() is another decorator, if we want our script
 # to do more than one thing, use group.
-def cli():
+@click.option('--profile', default=None,
+    help="Use a given AWS profile.")
+def cli(profile):
     "Webotron deploys websites to AWS"
-    pass
+    global session, bucket_manager
+    session_cfg = {}  # session config dictionary
+    if profile:
+        session_cfg['profile_name'] = profile
+
+    session = boto3.Session(**session_cfg)
+    bucket_manager = BucketManager(session)
 
 
 @cli.command('list-buckets')
